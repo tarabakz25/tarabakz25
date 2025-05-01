@@ -10,7 +10,25 @@ I am Kizuki.
 
 ## Tech Stack
 
-![](https://skillicons.dev/icons?i=next.js)
+![](https://skillicons.dev/icons?i=astro)
+![](https://skillicons.dev/icons?i=c)
+![](https://skillicons.dev/icons?i=cpp)
+![](https://skillicons.dev/icons?i=cmake)
+![](https://skillicons.dev/icons?i=css)
+![](https://skillicons.dev/icons?i=discord)
+![](https://skillicons.dev/icons?i=figma)
+![](https://skillicons.dev/icons?i=git)
+![](https://skillicons.dev/icons?i=github)
+![](https://skillicons.dev/icons?i=html)
+![](https://skillicons.dev/icons?i=ai)
+![](https://skillicons.dev/icons?i=js)
+![](https://skillicons.dev/icons?i=ts)
+![](https://skillicons.dev/icons?i=nextjs)
+![](https://skillicons.dev/icons?i=nodejs)
+![](https://skillicons.dev/icons?i=notion)
+![](https://skillicons.dev/icons?i=py)
+![](https://skillicons.dev/icons?i=supabase)
+![](https://skillicons.dev/icons?i=vercel)
 
 <!--
 **tarabakz25/tarabakz25** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
