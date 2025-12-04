@@ -1,14 +1,19 @@
 name: user-statistician
+
 on:
   schedule:
-    - cron: '0 3 * * *'
-  workflow_dispatch:
+    - cron: '0 3 * * *'   # 毎日 03:00 (適当でOK)
+  workflow_dispatch:       # 手動実行
+
+permissions:
+  contents: write          # ← ここが超重要
 
 jobs:
   stats:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Generate the user stats image
         uses: cicirello/user-statistician@v1
         env:
