@@ -2,17 +2,29 @@ name: user-statistician
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # 毎日 03:00 (適当でOK)
-  workflow_dispatch:       # 手動実行
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write          # ← ここが超重要
+  contents: write
 
 jobs:
   stats:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository (full history, persist credentials)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Sync branch with remote to avoid non-fast-forward push errors
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
 
       - name: Generate the user stats image
         uses: cicirello/user-statistician@v1
