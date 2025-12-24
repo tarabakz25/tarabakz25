@@ -17,6 +17,8 @@ Minimal / Tech-Oriented / Always Building
 [![trophy](https://github-profile-trophy.vercel.app/?username=tarabakz25&theme=onedark&column=7
 )](https://github.com/ryo-ma/github-profile-trophy)
 
+※ Pythonはそこまでやってません。なんでこうなってるんだろ
+
 ---
 
 ## 🧰 Tech Stack
