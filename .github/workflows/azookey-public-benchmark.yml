@@ -1,0 +1,99 @@
+name: azooKey public benchmark
+on:
+  push:
+    branches:
+      - benchmark/azookey-lgn-20261022
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Swift toolchain
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.2'
+      - name: Fetch azooKey source and public datasets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git clone --recurse-submodules https://github.com/azooKey/AzooKeyKanaKanjiConverter.git azoo
+          cd azoo
+          git checkout 04ce2ec3afe2bd6f92fcae1dc15a2357d332c27a
+          git submodule update --init --recursive
+          cd ..
+          python3 - <<'PY'
+          import json, urllib.request, pathlib
+          root=pathlib.Path('cases');root.mkdir(exist_ok=True)
+          rev='f1cc84cab6b58bbb3f0b689aee9884a227915a56'
+          url=f'https://raw.githubusercontent.com/jassdack/UniDic-to-Mozc/{rev}/eval/testset_words.tsv'
+          src=urllib.request.urlopen(url,timeout=90).read().decode('utf-8-sig')
+          words=[dict(query=q,answer=[a],tag=[t]) for line in src.splitlines()
+                  if line.strip() and not line.startswith('#')
+                  for q,a,t in [line.strip().split('\t')]]
+          assert len(words)==124, len(words)
+          (root/'words.json').write_text(json.dumps(words,ensure_ascii=False),encoding='utf8')
+          rev2='401666cd56d1a570c2021798b64b6da4396bfd45'
+          url2=f'https://raw.githubusercontent.com/azooKey/AJIMEE-Bench/{rev2}/JWTD_v2/v1/evaluation_items.json'
+          data=json.loads(urllib.request.urlopen(url2,timeout=90).read())
+          sentences=[dict(query=d['input'],answer=d['expected_output'],tag=['AJIMEE'],
+                          left_context=d.get('context_text') or '') for d in data]
+          assert len(sentences)==200,len(sentences)
+          (root/'sentences.json').write_text(json.dumps(sentences,ensure_ascii=False),encoding='utf8')
+          print('GOLD',len(words),len(sentences))
+          PY
+      - name: Compile official azooKey CLI
+        shell: bash
+        working-directory: azoo
+        run: |
+          set -euxo pipefail
+          swift --version
+          swift build -c release --product CliTool
+          .build/release/CliTool --help | head -30
+      - name: Run 124 word and 200 sentence evaluations
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p out
+          for i in 0 1 2 3; do
+            azoo/.build/release/CliTool evaluate cases/words.json --config_n_best 10 --config_typo_mode off --output out/words_$i.json
+          done
+          azoo/.build/release/CliTool evaluate cases/sentences.json --config_n_best 10 --config_typo_mode off --output out/sentences.json
+          python3 - <<'PY'
+          import json, statistics
+          from pathlib import Path
+          def summary(name,gold,preds):
+              assert len(gold)==len(preds['items']), (len(gold),len(preds['items']))
+              hits={1:0,5:0,10:0}
+              mismatches=[]
+              for inp,out in zip(gold,preds['items']):
+                  assert inp['query']==out['query']
+                  opts=[x['text'] for x in out['outputs']]
+                  ranks=[i for i,s in enumerate(opts) if s in inp['answer']]
+                  for k in hits:
+                      if ranks and min(ranks)<k: hits[k]+=1
+                  if not ranks or min(ranks)>0:
+                      mismatches.append([inp['query'],inp['answer'],opts[:3]])
+              print(f'MEASURED {name} count={len(gold)} top1={hits[1]/len(gold):.4%} top5={hits[5]/len(gold):.4%} top10={hits[10]/len(gold):.4%}')
+              for mis in mismatches[:10]:print('FAIL',repr(mis))
+          words=json.loads(Path('cases/words.json').read_text())
+          reps=[json.loads(p.read_text()) for p in sorted(Path('out').glob('words_*.json'))]
+          times=[j['execution_time']*1000/len(words) for j in reps]
+          summary('words',words,reps[-1])
+          print('MEASURED words time_ms_per_word_median=',statistics.median(times[1:]),'rounds=',times)
+          sentences=json.loads(Path('cases/sentences.json').read_text())
+          ans=json.loads(Path('out/sentences.json').read_text())
+          summary('sentences',sentences,ans)
+          print('MEASURED sentences time_ms_per_item=',ans['execution_time']*1000/len(sentences))
+          PY
+      - name: Save raw measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: azookey-public-benchmark
+          path: |
+            out/
+            cases/
+          retention-days: 7
